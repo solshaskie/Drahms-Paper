@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0A0D18" />
+    <meta name="description" content="Create stunning live wallpapers from YouTube videos with our advanced video editor" />
+    <meta name="keywords" content="live wallpaper, video editor, youtube, ffmpeg, video processing" />
+    <meta name="author" content="Live Wallpaper Creator" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://live-wallpaper-creator.com/" />
+    <meta property="og:title" content="Live Wallpaper Creator" />
+    <meta property="og:description" content="Create stunning live wallpapers from YouTube videos with our advanced video editor" />
+    <meta property="og:image" content="%PUBLIC_URL%/og-image.jpg" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://live-wallpaper-creator.com/" />
+    <meta property="twitter:title" content="Live Wallpaper Creator" />
+    <meta property="twitter:description" content="Create stunning live wallpapers from YouTube videos with our advanced video editor" />
+    <meta property="twitter:image" content="%PUBLIC_URL%/og-image.jpg" />
+
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <title>Live Wallpaper Creator</title>
+    
+    <style>
+      /* Dark theme base styles */
+      body {
+        margin: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #0A0D18;
+        color: #FFFFFF;
+        overflow-x: hidden;
+      }
+
+      #root {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #0A0D18 0%, #1A1E26 100%);
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #1A1E26;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #925FF0;
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #7B4FD9;
+      }
+
+      /* Loading animation */
+      .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(146, 95, 240, 0.3);
+        border-radius: 50%;
+        border-top-color: #925FF0;
+        animation: spin 1s ease-in-out infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      /* Fade in animation */
+      .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root">
+      <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #0A0D18 0%, #1A1E26 100%);">
+        <div style="text-align: center; color: #FFFFFF;">
+          <div class="loading-spinner" style="margin: 0 auto 20px;"></div>
+          <h2 style="font-family: 'Poppins', sans-serif; margin: 0; color: #925FF0;">Live Wallpaper Creator</h2>
+          <p style="margin: 10px 0 0; opacity: 0.8;">Loading...</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
