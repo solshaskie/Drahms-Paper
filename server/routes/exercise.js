@@ -9,10 +9,46 @@ const EXERCISEDB_API_BASE = 'https://exercisedb.p.rapidapi.com';
 const exerciseApi = axios.create({
   baseURL: EXERCISEDB_API_BASE,
   headers: {
-    'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
+    'X-RapidAPI-Key': process.env.NEXT_PUBLIC_RAPIDAPI_KEY,
     'X-RapidAPI-Host': 'exercisedb.p.rapidapi.com'
   }
 });
+
+// Debug: Log API key status
+console.log('RapidAPI Key Status:', process.env.NEXT_PUBLIC_RAPIDAPI_KEY ? 'SET' : 'NOT SET');
+
+// Fallback data for when API is unavailable
+const fallbackData = {
+  bodyParts: ['back', 'cardio', 'chest', 'lower arms', 'lower legs', 'neck', 'shoulders', 'upper arms', 'upper legs', 'waist'],
+  equipment: ['assisted', 'band', 'barbell', 'body weight', 'bosu ball', 'cable', 'dumbbell', 'elliptical machine', 'ez barbell', 'hammer', 'kettlebell', 'leverage machine', 'medicine ball', 'olympic barbell', 'resistance band', 'roller', 'rope', 'skierg machine', 'sled machine', 'smith machine', 'stability ball', 'stationary bike', 'stepmill machine', 'tire', 'trap bar', 'upper body ergometer', 'weighted', 'wheel roller'],
+  targets: ['abductors', 'abs', 'adductors', 'biceps', 'calves', 'cardiovascular system', 'delts', 'forearms', 'glutes', 'hamstrings', 'lats', 'levator scapulae', 'pectorals', 'quads', 'serratus anterior', 'spine', 'traps', 'triceps', 'upper back'],
+  exercises: [
+    {
+      id: '0001',
+      name: 'Push-up',
+      bodyPart: 'chest',
+      equipment: 'body weight',
+      target: 'pectorals',
+      gifUrl: 'https://example.com/pushup.gif'
+    },
+    {
+      id: '0002', 
+      name: 'Squat',
+      bodyPart: 'upper legs',
+      equipment: 'body weight',
+      target: 'quads',
+      gifUrl: 'https://example.com/squat.gif'
+    },
+    {
+      id: '0003',
+      name: 'Pull-up',
+      bodyPart: 'back',
+      equipment: 'body weight', 
+      target: 'lats',
+      gifUrl: 'https://example.com/pullup.gif'
+    }
+  ]
+};
 
 // Get all exercises
 router.get('/exercises', async (req, res) => {
@@ -71,7 +107,10 @@ router.get('/bodyparts', async (req, res) => {
     });
   } catch (error) {
     console.error('Body parts fetch error:', error);
-    res.status(500).json({ error: 'Failed to fetch body parts' });
+    console.log('Using fallback data for body parts');
+    res.json({
+      bodyParts: fallbackData.bodyParts
+    });
   }
 });
 
@@ -85,7 +124,10 @@ router.get('/equipment', async (req, res) => {
     });
   } catch (error) {
     console.error('Equipment fetch error:', error);
-    res.status(500).json({ error: 'Failed to fetch equipment' });
+    console.log('Using fallback data for equipment');
+    res.json({
+      equipment: fallbackData.equipment
+    });
   }
 });
 

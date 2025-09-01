@@ -9,7 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 // Initialize YouTube API
 const youtube = google.youtube({
   version: 'v3',
-  auth: process.env.YOUTUBE_API_KEY
+  auth: process.env.NEXT_PUBLIC_YOUTUBE_API_KEY
 });
 
 // Validate YouTube URL
@@ -49,13 +49,24 @@ router.post('/metadata', async (req, res) => {
 
     const videoId = ytdl.getVideoID(url);
     
-    // Get video info using ytdl-core
-    const info = await ytdl.getInfo(url);
-    const videoDetails = info.videoDetails;
-    
-    // Get additional metadata from YouTube API if available
-    let apiMetadata = {};
-    if (process.env.YOUTUBE_API_KEY) {
+    // Try to get metadata from YouTube API first (more reliable)
+    let metadata = {
+      videoId,
+      title: 'Video Title',
+      description: 'Video description not available',
+      thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+      duration: 0,
+      author: 'Unknown Author',
+      viewCount: 0,
+      formats: {
+        videoAndAudio: [],
+        videoOnly: [],
+        audioOnly: []
+      }
+    };
+
+    // Try YouTube API first
+    if (process.env.NEXT_PUBLIC_YOUTUBE_API_KEY) {
       try {
         const response = await youtube.videos.list({
           part: 'snippet,statistics,contentDetails',
@@ -64,11 +75,16 @@ router.post('/metadata', async (req, res) => {
         
         if (response.data.items && response.data.items.length > 0) {
           const item = response.data.items[0];
-          apiMetadata = {
+          metadata = {
+            ...metadata,
+            title: item.snippet.title,
+            description: item.snippet.description,
+            thumbnail: item.snippet.thumbnails?.maxres?.url || item.snippet.thumbnails?.high?.url || metadata.thumbnail,
+            duration: item.contentDetails.duration,
+            author: item.snippet.channelTitle,
             viewCount: item.statistics.viewCount,
             likeCount: item.statistics.likeCount,
             commentCount: item.statistics.commentCount,
-            duration: item.contentDetails.duration,
             tags: item.snippet.tags || [],
             categoryId: item.snippet.categoryId
           };
@@ -78,46 +94,65 @@ router.post('/metadata', async (req, res) => {
       }
     }
 
-    // Get available formats
-    const formats = ytdl.filterFormats(info.formats, 'videoandaudio');
-    const videoFormats = ytdl.filterFormats(info.formats, 'videoonly');
-    const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
+    // Try ytdl-core as fallback (but handle errors gracefully)
+    try {
+      const info = await ytdl.getInfo(url);
+      const videoDetails = info.videoDetails;
+      
+      // Update metadata with ytdl-core data if available
+      metadata = {
+        ...metadata,
+        title: videoDetails.title || metadata.title,
+        description: videoDetails.description || metadata.description,
+        thumbnail: videoDetails.thumbnails?.[videoDetails.thumbnails.length - 1]?.url || metadata.thumbnail,
+        duration: videoDetails.lengthSeconds || metadata.duration,
+        author: videoDetails.author?.name || metadata.author,
+        viewCount: videoDetails.viewCount || metadata.viewCount
+      };
 
-    const metadata = {
-      videoId,
-      title: videoDetails.title,
-      description: videoDetails.description,
-      thumbnail: videoDetails.thumbnails[videoDetails.thumbnails.length - 1]?.url,
-      duration: videoDetails.lengthSeconds,
-      author: videoDetails.author.name,
-      viewCount: videoDetails.viewCount,
-      ...apiMetadata,
-      formats: {
-        videoAndAudio: formats.map(f => ({
-          itag: f.itag,
-          quality: f.qualityLabel,
-          container: f.container,
-          size: f.contentLength
-        })),
-        videoOnly: videoFormats.map(f => ({
-          itag: f.itag,
-          quality: f.qualityLabel,
-          container: f.container,
-          size: f.contentLength
-        })),
-        audioOnly: audioFormats.map(f => ({
-          itag: f.itag,
-          quality: f.audioBitrate + 'kbps',
-          container: f.container,
-          size: f.contentLength
-        }))
+      // Get available formats
+      try {
+        const formats = ytdl.filterFormats(info.formats, 'videoandaudio');
+        const videoFormats = ytdl.filterFormats(info.formats, 'videoonly');
+        const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
+
+        metadata.formats = {
+          videoAndAudio: formats.map(f => ({
+            itag: f.itag,
+            quality: f.qualityLabel,
+            container: f.container,
+            size: f.contentLength
+          })),
+          videoOnly: videoFormats.map(f => ({
+            itag: f.itag,
+            quality: f.qualityLabel,
+            container: f.container,
+            size: f.contentLength
+          })),
+          audioOnly: audioFormats.map(f => ({
+            itag: f.itag,
+            quality: f.audioBitrate + 'kbps',
+            container: f.container,
+            size: f.contentLength
+          }))
+        };
+      } catch (formatError) {
+        console.warn('Format extraction error:', formatError.message);
+        // Keep default empty formats
       }
-    };
+    } catch (ytdlError) {
+      console.warn('ytdl-core error:', ytdlError.message);
+      // Continue with API metadata only
+    }
 
     res.json(metadata);
   } catch (error) {
     console.error('YouTube metadata error:', error);
-    res.status(500).json({ error: 'Failed to fetch video metadata' });
+    res.status(500).json({ 
+      error: 'Failed to fetch video metadata',
+      message: 'YouTube download functionality may be temporarily unavailable. Try Facebook or Instagram videos instead.',
+      fallback: true
+    });
   }
 });
 
@@ -150,49 +185,63 @@ router.post('/download', async (req, res) => {
       filter: format === 'audio' ? 'audioonly' : format === 'video' ? 'videoonly' : 'videoandaudio'
     };
 
-    // Start download
-    const stream = ytdl(url, options);
-    const writeStream = fs.createWriteStream(filePath);
+    try {
+      // Start download
+      const stream = ytdl(url, options);
+      const writeStream = fs.createWriteStream(filePath);
 
-    stream.pipe(writeStream);
+      stream.pipe(writeStream);
 
-    // Track download progress
-    let downloadedBytes = 0;
-    let totalBytes = 0;
+      // Track download progress
+      let downloadedBytes = 0;
+      let totalBytes = 0;
 
-    stream.on('info', (info, format) => {
-      totalBytes = parseInt(format.contentLength);
-      console.log(`Starting download: ${fileName}`);
-    });
+      stream.on('info', (info, format) => {
+        totalBytes = parseInt(format.contentLength);
+        console.log(`Starting download: ${fileName}`);
+      });
 
-    stream.on('data', (chunk) => {
-      downloadedBytes += chunk.length;
-    });
+      stream.on('data', (chunk) => {
+        downloadedBytes += chunk.length;
+      });
 
-    stream.on('end', () => {
-      console.log(`Download completed: ${fileName}`);
-    });
+      stream.on('end', () => {
+        console.log(`Download completed: ${fileName}`);
+      });
 
-    stream.on('error', (error) => {
-      console.error('Download error:', error);
-      fs.remove(filePath).catch(console.error);
-    });
+      stream.on('error', (error) => {
+        console.error('Download error:', error);
+        fs.remove(filePath).catch(console.error);
+      });
 
-    writeStream.on('finish', () => {
-      console.log(`File saved: ${fileName}`);
-    });
+      writeStream.on('finish', () => {
+        console.log(`File saved: ${fileName}`);
+      });
 
-    res.json({
-      downloadId,
-      fileName,
-      format,
-      status: 'downloading',
-      message: 'Download started successfully'
-    });
+      res.json({
+        downloadId,
+        fileName,
+        format,
+        status: 'downloading',
+        message: 'Download started successfully'
+      });
+
+    } catch (ytdlError) {
+      console.error('ytdl-core download error:', ytdlError);
+      res.status(500).json({ 
+        error: 'YouTube download currently unavailable',
+        message: 'YouTube download functionality is temporarily unavailable due to recent changes. Try Facebook or Instagram videos instead.',
+        fallback: true
+      });
+    }
 
   } catch (error) {
     console.error('YouTube download error:', error);
-    res.status(500).json({ error: 'Failed to start download' });
+    res.status(500).json({ 
+      error: 'Failed to start download',
+      message: 'Try Facebook or Instagram videos instead.',
+      fallback: true
+    });
   }
 });
 

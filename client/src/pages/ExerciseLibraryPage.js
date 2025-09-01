@@ -64,14 +64,15 @@ const ExerciseLibraryPage = () => {
     error: exercisesError,
     refetch: refetchExercises,
   } = useQuery(
-    ['exercises', exerciseLibrary.filters, exerciseLibrary.pagination],
+    ['exercises', exerciseLibrary?.filters, exerciseLibrary?.pagination],
     () => exerciseService.getExercises({
-      ...exerciseLibrary.filters,
-      limit: exerciseLibrary.pagination.limit,
-      offset: (exerciseLibrary.pagination.page - 1) * exerciseLibrary.pagination.limit,
+      ...(exerciseLibrary?.filters || {}),
+      limit: exerciseLibrary?.pagination?.limit || 20,
+      offset: ((exerciseLibrary?.pagination?.page || 1) - 1) * (exerciseLibrary?.pagination?.limit || 20),
     }),
     {
       keepPreviousData: true,
+      enabled: !!exerciseLibrary?.filters && !!exerciseLibrary?.pagination,
     }
   );
 
@@ -349,7 +350,7 @@ const ExerciseLibraryPage = () => {
                           label="Body Part"
                         >
                           <MenuItem value="">All</MenuItem>
-                          {filtersData?.[0]?.bodyParts?.map((part) => (
+                          {(filtersData?.[0]?.bodyParts || []).map((part) => (
                             <MenuItem key={part} value={part}>
                               {part}
                             </MenuItem>
@@ -368,7 +369,7 @@ const ExerciseLibraryPage = () => {
                           label="Equipment"
                         >
                           <MenuItem value="">All</MenuItem>
-                          {filtersData?.[1]?.equipment?.map((equipment) => (
+                          {(filtersData?.[1]?.equipment || []).map((equipment) => (
                             <MenuItem key={equipment} value={equipment}>
                               {equipment}
                             </MenuItem>
@@ -387,7 +388,7 @@ const ExerciseLibraryPage = () => {
                           label="Target"
                         >
                           <MenuItem value="">All</MenuItem>
-                          {filtersData?.[2]?.targets?.map((target) => (
+                          {(filtersData?.[2]?.targets || []).map((target) => (
                             <MenuItem key={target} value={target}>
                               {target}
                             </MenuItem>
@@ -412,7 +413,7 @@ const ExerciseLibraryPage = () => {
             ) : (
               <>
                 <Grid container spacing={3} mb={4}>
-                  {exerciseLibrary.exercises.map((exercise) => (
+                  {(exerciseLibrary?.exercises || []).map((exercise) => (
                     <Grid item xs={12} sm={6} md={4} lg={3} key={exercise.id}>
                       {renderExerciseCard(exercise)}
                     </Grid>
@@ -420,11 +421,11 @@ const ExerciseLibraryPage = () => {
                 </Grid>
 
                 {/* Pagination */}
-                {exerciseLibrary.pagination.total > exerciseLibrary.pagination.limit && (
+                {exerciseLibrary?.pagination?.total > exerciseLibrary?.pagination?.limit && (
                   <Box display="flex" justifyContent="center">
                     <Pagination
-                      count={Math.ceil(exerciseLibrary.pagination.total / exerciseLibrary.pagination.limit)}
-                      page={exerciseLibrary.pagination.page}
+                      count={Math.ceil((exerciseLibrary?.pagination?.total || 0) / (exerciseLibrary?.pagination?.limit || 20))}
+                      page={exerciseLibrary?.pagination?.page || 1}
                       onChange={handlePageChange}
                       color="primary"
                     />
@@ -448,7 +449,7 @@ const ExerciseLibraryPage = () => {
               </Alert>
             ) : (
               <Grid container spacing={4}>
-                {exerciseLibrary.collections.map((collection) => (
+                {(exerciseLibrary?.collections || []).map((collection) => (
                   <Grid item xs={12} sm={6} md={4} key={collection.id}>
                     {renderCollectionCard(collection)}
                   </Grid>
